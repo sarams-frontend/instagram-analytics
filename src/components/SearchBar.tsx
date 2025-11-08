@@ -28,7 +28,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, loading = false 
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Ingresa el nombre de usuario de Instagram (ej: noelbayarri)"
-            className="flex-1 py-4 px-2 text-lg outline-none"
+            className="flex-1 py-4 px-2 text-lg text-gray-900 placeholder:text-gray-400 outline-none"
             disabled={loading}
           />
           <button
