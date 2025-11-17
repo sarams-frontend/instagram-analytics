@@ -1,11 +1,11 @@
 export interface InstagramProfile {
   username: string;
   fullName: string;
+  biography: string;
   profilePicUrl: string;
   followers: number;
   following: number;
   posts: number;
-  biography: string;
   isVerified: boolean;
   isPrivate: boolean;
 }
@@ -14,19 +14,26 @@ export interface EngagementMetrics {
   engagementRate: number;
   avgLikes: number;
   avgComments: number;
-  totalEngagement: number;
-}
-
-export interface AudienceQuality {
-  realFollowers: number;
-  suspiciousFollowers: number;
-  qualityScore: number;
 }
 
 export interface ContentCategory {
   name: string;
-  icon: string;
-  percentage?: number;
+  percentage: number;
+  color: string;
+}
+
+export interface Rankings {
+  globalRank: number;
+  countryRank: number;
+  country: string;
+  categoryRank: string;
+  category: string;
+}
+
+export interface AudienceQuality {
+  qualityScore: number;
+  realFollowers: number;
+  suspiciousFollowers: number;
 }
 
 export interface FollowerGrowth {
@@ -34,19 +41,11 @@ export interface FollowerGrowth {
   followers: number;
 }
 
-export interface Rankings {
-  globalRank: number;
-  countryRank: number;
-  categoryRank: number;
-  country: string;
-  category: string;
-}
-
 export interface InstagramAnalytics {
   profile: InstagramProfile;
   engagement: EngagementMetrics;
-  audienceQuality: AudienceQuality;
   categories: ContentCategory[];
-  followerGrowth: FollowerGrowth[];
   rankings: Rankings;
+  audienceQuality: AudienceQuality;
+  followerGrowth: FollowerGrowth[];
 }
