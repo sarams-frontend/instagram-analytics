@@ -336,7 +336,7 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
         )}
       </form>
       <p className="text-sm text-gray-600 mt-3 text-center">
-        💡 <strong>Escribe cualquier usuario</strong> y presiona "Analizar" - Las sugerencias son solo ayuda para usuarios populares
+        💡 <strong>Escribe cualquier usuario</strong> y presiona "Analizar" - Las sugerencias filtran por texto coincidente
       </p>
     </div>
   );
