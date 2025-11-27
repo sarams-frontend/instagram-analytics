@@ -150,46 +150,36 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
     if (username.trim().length > 0) {
       const searchTerm = username.toLowerCase().trim();
 
-      // Normalizar variantes comunes de nombres (Chris/Kris/Cris -> cris)
-      const normalizeVariants = (text: string) => {
-        return text
-          .replace(/^kh?ris/i, 'cris') // kris, khris -> cris
-          .replace(/^ch?ris/i, 'cris'); // chris, cris -> cris
-      };
-
-      const normalizedSearch = normalizeVariants(searchTerm);
-
-      // Filtro MUY permisivo: busca en username, fullName completo, y cada palabra
+      // Filtrar usuarios que EMPIECEN con las letras escritas
+      // Se busca en: username completo, cada palabra del fullName
       const matches = POPULAR_SUGGESTIONS.filter((suggestion) => {
         const lowerUsername = suggestion.username.toLowerCase();
         const lowerFullName = suggestion.fullName.toLowerCase();
-        const normalizedUsername = normalizeVariants(lowerUsername);
-        const normalizedFullName = normalizeVariants(lowerFullName);
 
-        const usernameWords = normalizedUsername.split(/[_.-]/); // Separar por guiones/puntos
-        const fullNameWords = normalizedFullName.split(' ');
-        const allWords = [...usernameWords, ...fullNameWords];
+        // 1. Buscar si el username EMPIEZA con el término
+        if (lowerUsername.startsWith(searchTerm)) {
+          return true;
+        }
 
-        // 1. Buscar coincidencia directa (sin normalizar)
+        // 2. Buscar si alguna PALABRA del nombre completo EMPIEZA con el término
+        const fullNameWords = lowerFullName.split(' ');
+        if (fullNameWords.some(word => word.startsWith(searchTerm))) {
+          return true;
+        }
+
+        // 3. También permitir coincidencias en medio del username o nombre (más flexible)
         if (lowerUsername.includes(searchTerm) || lowerFullName.includes(searchTerm)) {
           return true;
         }
 
-        // 2. Buscar con normalización de variantes
-        if (normalizedUsername.includes(normalizedSearch) || normalizedFullName.includes(normalizedSearch)) {
-          return true;
-        }
-
-        // 3. Buscar en palabras individuales (normalizado)
-        return allWords.some(word => word.includes(normalizedSearch));
+        return false;
       });
 
       console.log('🔍 SearchBar Debug:', {
         searchTerm,
-        normalizedSearch,
         totalSuggestions: POPULAR_SUGGESTIONS.length,
         matchesFound: matches.length,
-        firstMatches: matches.slice(0, 8).map(m => m.username)
+        firstMatches: matches.slice(0, 8).map(m => `${m.username} (${m.fullName})`)
       });
 
       setFilteredSuggestions(matches.slice(0, 8)); // Mostrar máximo 8 sugerencias
