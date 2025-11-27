@@ -154,6 +154,15 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
           suggestion.username.toLowerCase().includes(searchTerm) ||
           suggestion.fullName.toLowerCase().includes(searchTerm)
       );
+
+      // DEBUG: Ver qué está pasando
+      console.log('🔍 SearchBar Debug:', {
+        searchTerm,
+        totalSuggestions: POPULAR_SUGGESTIONS.length,
+        matchesFound: matches.length,
+        firstMatches: matches.slice(0, 8).map(m => m.username)
+      });
+
       setFilteredSuggestions(matches.slice(0, 8)); // Mostrar máximo 8 sugerencias
       setShowSuggestions(matches.length > 0);
     } else {
