@@ -149,13 +149,21 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
   useEffect(() => {
     if (username.trim().length > 0) {
       const searchTerm = username.toLowerCase().trim();
-      const matches = POPULAR_SUGGESTIONS.filter(
-        (suggestion) =>
-          suggestion.username.toLowerCase().includes(searchTerm) ||
-          suggestion.fullName.toLowerCase().includes(searchTerm)
-      );
+      const matches = POPULAR_SUGGESTIONS.filter((suggestion) => {
+        const lowerUsername = suggestion.username.toLowerCase();
+        const lowerFullName = suggestion.fullName.toLowerCase();
 
-      // DEBUG: Ver qué está pasando
+        // Buscar coincidencia en username o fullName
+        // También buscar en cada palabra del fullName por separado
+        const fullNameWords = lowerFullName.split(' ');
+
+        return (
+          lowerUsername.includes(searchTerm) ||
+          lowerFullName.includes(searchTerm) ||
+          fullNameWords.some(word => word.startsWith(searchTerm))
+        );
+      });
+
       console.log('🔍 SearchBar Debug:', {
         searchTerm,
         totalSuggestions: POPULAR_SUGGESTIONS.length,
