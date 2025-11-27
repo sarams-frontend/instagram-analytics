@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
-import axios from 'axios';
-import { API_CONFIG, formatNumber } from '@/config';
+import { formatNumber } from '@/config';
 
 interface SearchBarProps {
   onSearch: (username: string) => void;
@@ -20,16 +19,36 @@ interface SearchResult {
   isVerified: boolean;
 }
 
-const DEBOUNCE_DELAY = 500;
+// Sugerencias estáticas de usuarios populares (NO requiere llamadas a API)
+const POPULAR_SUGGESTIONS: SearchResult[] = [
+  { username: 'cristiano', fullName: 'Cristiano Ronaldo', profilePicUrl: '', followers: 617500000, isVerified: true },
+  { username: 'leomessi', fullName: 'Leo Messi', profilePicUrl: '', followers: 504000000, isVerified: true },
+  { username: 'selenagomez', fullName: 'Selena Gomez', profilePicUrl: '', followers: 429000000, isVerified: true },
+  { username: 'therock', fullName: 'Dwayne Johnson', profilePicUrl: '', followers: 397000000, isVerified: true },
+  { username: 'kyliejenner', fullName: 'Kylie Jenner', profilePicUrl: '', followers: 399000000, isVerified: true },
+  { username: 'kimkardashian', fullName: 'Kim Kardashian', profilePicUrl: '', followers: 364000000, isVerified: true },
+  { username: 'arianagrande', fullName: 'Ariana Grande', profilePicUrl: '', followers: 380000000, isVerified: true },
+  { username: 'beyonce', fullName: 'Beyoncé', profilePicUrl: '', followers: 316000000, isVerified: true },
+  { username: 'khloekardashian', fullName: 'Khloé Kardashian', profilePicUrl: '', followers: 311000000, isVerified: true },
+  { username: 'justinbieber', fullName: 'Justin Bieber', profilePicUrl: '', followers: 294000000, isVerified: true },
+  { username: 'kendalljenner', fullName: 'Kendall Jenner', profilePicUrl: '', followers: 293000000, isVerified: true },
+  { username: 'nike', fullName: 'Nike', profilePicUrl: '', followers: 306000000, isVerified: true },
+  { username: 'taylorswift', fullName: 'Taylor Swift', profilePicUrl: '', followers: 283000000, isVerified: true },
+  { username: 'jlo', fullName: 'Jennifer Lopez', profilePicUrl: '', followers: 251000000, isVerified: true },
+  { username: 'nickiminaj', fullName: 'Nicki Minaj', profilePicUrl: '', followers: 228000000, isVerified: true },
+  { username: 'natgeo', fullName: 'National Geographic', profilePicUrl: '', followers: 283000000, isVerified: true },
+  { username: 'fcbarcelona', fullName: 'FC Barcelona', profilePicUrl: '', followers: 127000000, isVerified: true },
+  { username: 'realmadrid', fullName: 'Real Madrid', profilePicUrl: '', followers: 149000000, isVerified: true },
+  { username: 'championsleague', fullName: 'UEFA Champions League', profilePicUrl: '', followers: 113000000, isVerified: true },
+  { username: 'neymarjr', fullName: 'Neymar Jr', profilePicUrl: '', followers: 224000000, isVerified: true },
+];
 
 export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, loading = false }, ref) => {
   const [username, setUsername] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<SearchResult[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Expose focus method to parent component
   useImperativeHandle(ref, () => ({
@@ -38,56 +57,22 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
     }
   }), []);
 
-  // Función de búsqueda optimizada con useCallback
-  const searchUsers = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setShowSuggestions(false);
-      setSearching(false);
-      return;
-    }
-
-    setSearching(true);
-
-    try {
-      const response = await axios.get(`${API_CONFIG.PROXY_URL}/api/instagram/search`, {
-        params: { query: searchQuery.trim() },
-        timeout: API_CONFIG.TIMEOUT,
-      });
-
-      if (response.data.results) {
-        setSearchResults(response.data.results);
-        setShowSuggestions(true);
-      }
-    } catch (error) {
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
-
-  // Buscar usuarios con debounce
+  // Filtrar sugerencias estáticas basadas en el texto ingresado (NO llama a API)
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
     if (username.trim().length > 0) {
-      debounceTimerRef.current = setTimeout(() => {
-        searchUsers(username);
-      }, DEBOUNCE_DELAY);
+      const searchTerm = username.toLowerCase().trim();
+      const matches = POPULAR_SUGGESTIONS.filter(
+        (suggestion) =>
+          suggestion.username.toLowerCase().includes(searchTerm) ||
+          suggestion.fullName.toLowerCase().includes(searchTerm)
+      );
+      setFilteredSuggestions(matches.slice(0, 8)); // Mostrar máximo 8 sugerencias
+      setShowSuggestions(matches.length > 0);
     } else {
-      setSearchResults([]);
+      setFilteredSuggestions([]);
       setShowSuggestions(false);
-      setSearching(false);
     }
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [username, searchUsers]);
+  }, [username]);
 
   // Handlers optimizados con useCallback
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -107,7 +92,7 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
   const handleClear = useCallback(() => {
     setUsername('');
     setShowSuggestions(false);
-    setSearchResults([]);
+    setFilteredSuggestions([]);
   }, []);
 
   // Cerrar sugerencias al hacer click fuera
@@ -140,7 +125,7 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
             disabled={loading}
             autoComplete="off"
           />
-          {username && !loading && !searching && (
+          {username && !loading && (
             <button
               type="button"
               onClick={handleClear}
@@ -148,11 +133,6 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
             >
               <X size={20} />
             </button>
-          )}
-          {searching && (
-            <div className="px-3">
-              <div className="animate-spin h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full"></div>
-            </div>
           )}
           <button
             type="submit"
@@ -163,14 +143,14 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
           </button>
         </div>
 
-        {/* Dropdown de sugerencias con resultados reales */}
-        {showSuggestions && searchResults.length > 0 && (
+        {/* Dropdown de sugerencias estáticas (sin llamadas a API) */}
+        {showSuggestions && filteredSuggestions.length > 0 && (
           <div className="absolute z-10 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[500px] overflow-y-auto">
             <div className="p-2">
               <p className="text-xs text-gray-500 px-3 py-2 font-semibold uppercase tracking-wide">
-                Resultados de búsqueda
+                Sugerencias populares
               </p>
-              {searchResults.map((result) => (
+              {filteredSuggestions.map((result) => (
                 <button
                   key={result.username}
                   type="button"
@@ -253,7 +233,7 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
         )}
 
         {/* Mensaje cuando no hay sugerencias PERO puede buscar igual */}
-        {showSuggestions && !searching && searchResults.length === 0 && username.trim().length > 0 && (
+        {!showSuggestions && username.trim().length > 0 && (
           <div className="absolute z-10 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 p-4">
             <p className="text-sm text-gray-700 text-center font-semibold">
               No hay sugerencias para "{username}"
