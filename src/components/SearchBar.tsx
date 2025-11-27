@@ -149,23 +149,44 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
   useEffect(() => {
     if (username.trim().length > 0) {
       const searchTerm = username.toLowerCase().trim();
+
+      // Normalizar variantes comunes de nombres (Chris/Kris/Cris -> cris)
+      const normalizeVariants = (text: string) => {
+        return text
+          .replace(/^kh?ris/i, 'cris') // kris, khris -> cris
+          .replace(/^ch?ris/i, 'cris'); // chris, cris -> cris
+      };
+
+      const normalizedSearch = normalizeVariants(searchTerm);
+
+      // Filtro MUY permisivo: busca en username, fullName completo, y cada palabra
       const matches = POPULAR_SUGGESTIONS.filter((suggestion) => {
         const lowerUsername = suggestion.username.toLowerCase();
         const lowerFullName = suggestion.fullName.toLowerCase();
+        const normalizedUsername = normalizeVariants(lowerUsername);
+        const normalizedFullName = normalizeVariants(lowerFullName);
 
-        // Buscar coincidencia en username o fullName
-        // También buscar en cada palabra del fullName por separado
-        const fullNameWords = lowerFullName.split(' ');
+        const usernameWords = normalizedUsername.split(/[_.-]/); // Separar por guiones/puntos
+        const fullNameWords = normalizedFullName.split(' ');
+        const allWords = [...usernameWords, ...fullNameWords];
 
-        return (
-          lowerUsername.includes(searchTerm) ||
-          lowerFullName.includes(searchTerm) ||
-          fullNameWords.some(word => word.startsWith(searchTerm))
-        );
+        // 1. Buscar coincidencia directa (sin normalizar)
+        if (lowerUsername.includes(searchTerm) || lowerFullName.includes(searchTerm)) {
+          return true;
+        }
+
+        // 2. Buscar con normalización de variantes
+        if (normalizedUsername.includes(normalizedSearch) || normalizedFullName.includes(normalizedSearch)) {
+          return true;
+        }
+
+        // 3. Buscar en palabras individuales (normalizado)
+        return allWords.some(word => word.includes(normalizedSearch));
       });
 
       console.log('🔍 SearchBar Debug:', {
         searchTerm,
+        normalizedSearch,
         totalSuggestions: POPULAR_SUGGESTIONS.length,
         matchesFound: matches.length,
         firstMatches: matches.slice(0, 8).map(m => m.username)
