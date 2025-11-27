@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import axios from 'axios';
+import { API_CONFIG, formatNumber } from '@/config';
 
 interface SearchBarProps {
   onSearch: (username: string) => void;
@@ -19,7 +20,7 @@ interface SearchResult {
   isVerified: boolean;
 }
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001';
+const DEBOUNCE_DELAY = 500;
 
 export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, loading = false }, ref) => {
   const [username, setUsername] = useState('');
@@ -35,61 +36,79 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
     focus: () => {
       inputRef.current?.focus();
     }
-  }));
+  }), []);
 
-  // Formatear número de seguidores
-  const formatFollowers = (count: number): string => {
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
+  // Función de búsqueda optimizada con useCallback
+  const searchUsers = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setShowSuggestions(false);
+      setSearching(false);
+      return;
     }
-    return count.toString();
-  };
 
-  // Buscar usuarios en la API con debounce
+    setSearching(true);
+
+    try {
+      const response = await axios.get(`${API_CONFIG.PROXY_URL}/api/instagram/search`, {
+        params: { query: searchQuery.trim() },
+        timeout: API_CONFIG.TIMEOUT,
+      });
+
+      if (response.data.results) {
+        setSearchResults(response.data.results);
+        setShowSuggestions(true);
+      }
+    } catch (error) {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  // Buscar usuarios con debounce
   useEffect(() => {
-    // Limpiar el timer anterior
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
     if (username.trim().length > 0) {
-      setSearching(true);
-
-      // Crear nuevo timer de debounce (500ms)
-      debounceTimerRef.current = setTimeout(async () => {
-        try {
-          console.log('🔍 Buscando:', username);
-          const response = await axios.get(`${PROXY_URL}/api/instagram/search`, {
-            params: { query: username.trim() },
-            timeout: 15000,
-          });
-
-          if (response.data.results) {
-            setSearchResults(response.data.results);
-            setShowSuggestions(true);
-          }
-        } catch (error) {
-          console.error('Error en búsqueda:', error);
-          setSearchResults([]);
-        } finally {
-          setSearching(false);
-        }
-      }, 500);
+      debounceTimerRef.current = setTimeout(() => {
+        searchUsers(username);
+      }, DEBOUNCE_DELAY);
     } else {
       setSearchResults([]);
       setShowSuggestions(false);
       setSearching(false);
     }
 
-    // Cleanup
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [username]);
+  }, [username, searchUsers]);
+
+  // Handlers optimizados con useCallback
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.trim()) {
+      onSearch(username.trim());
+      setShowSuggestions(false);
+    }
+  }, [username, onSearch]);
+
+  const handleSuggestionClick = useCallback((suggestedUsername: string) => {
+    setUsername(suggestedUsername);
+    setShowSuggestions(false);
+    onSearch(suggestedUsername);
+  }, [onSearch]);
+
+  const handleClear = useCallback(() => {
+    setUsername('');
+    setShowSuggestions(false);
+    setSearchResults([]);
+  }, []);
 
   // Cerrar sugerencias al hacer click fuera
   useEffect(() => {
@@ -102,26 +121,6 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username.trim()) {
-      onSearch(username.trim());
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleSuggestionClick = (suggestedUsername: string) => {
-    setUsername(suggestedUsername);
-    setShowSuggestions(false);
-    onSearch(suggestedUsername);
-  };
-
-  const handleClear = () => {
-    setUsername('');
-    setShowSuggestions(false);
-    setSearchResults([]);
-  };
 
   return (
     <div className="w-full max-w-3xl mx-auto" ref={wrapperRef}>
@@ -231,7 +230,7 @@ export const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(({ onSearch, l
                     {result.followers > 0 && (
                       <p className="text-xs text-gray-500 mt-0.5">
                         <span className="font-semibold text-gray-700">
-                          {formatFollowers(result.followers)}
+                          {formatNumber(result.followers)}
                         </span>
                         {' '}seguidores
                       </p>

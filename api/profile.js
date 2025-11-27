@@ -2,9 +2,15 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers - Restrictivo en producción
+  const allowedOrigin = req.headers.origin;
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+
+  if (allowedOrigins.length === 0 || allowedOrigins.includes(allowedOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin || '*');
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -35,15 +41,8 @@ export default async function handler(req, res) {
     RAPIDAPI_HOST: process.env.RAPIDAPI_HOST || 'instagram-statistics-api.p.rapidapi.com',
   };
 
-  console.log(`\n📥 Request recibido para: ${username}`);
-
   try {
     const instagramUrl = `https://www.instagram.com/${username}/`;
-
-    console.log('🔄 Haciendo request a RapidAPI...');
-    console.log('   URL:', instagramUrl);
-    console.log('   Host:', CONFIG.RAPIDAPI_HOST);
-    console.log('   API Key:', CONFIG.RAPIDAPI_KEY ? '***' + CONFIG.RAPIDAPI_KEY.slice(-4) : 'NOT SET');
 
     const response = await axios.get(
       `https://${CONFIG.RAPIDAPI_HOST}/community`,
@@ -59,27 +58,11 @@ export default async function handler(req, res) {
       }
     );
 
-    console.log('✅ Respuesta exitosa de RapidAPI');
-    console.log('   Status:', response.status);
-
     return res.status(200).json(response.data);
 
   } catch (error) {
-    console.error('❌ API Error:', error.message);
-
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      console.error('Error details:', error.response?.data);
-      console.error('Status:', status);
-
-      // Log specific error messages based on status code
-      if (status === 401 || status === 403) {
-        console.error('⚠️ API Key inválida o sin permisos.');
-      } else if (status === 404) {
-        console.error('⚠️ Usuario no encontrado o endpoint incorrecto.');
-      } else if (status === 429) {
-        console.error('⚠️ Límite de requests excedido.');
-      }
 
       return res.status(status || 500).json({
         error: 'API Error',

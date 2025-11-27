@@ -1,10 +1,32 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import type { InstagramAnalytics, ContentCategory, FollowerGrowth } from '@/types/instagram';
-import { ENGAGEMENT_CONSTANTS } from '@/lib/utils';
+import {
+  API_CONFIG,
+  ENGAGEMENT_CONSTANTS,
+  CATEGORY_COLORS,
+  TAG_CATEGORY_MAP,
+  FALLBACK_CATEGORIES,
+} from '@/config';
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001';
+// Configure axios retry for resilience
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+  retryCondition: (error) => {
+    return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+           error.response?.status === 429 || // Rate limit
+           error.response?.status === 503;    // Service unavailable
+  },
+});
 
-// Generate unique percentages based on username hash for consistency
+/**
+ * Genera porcentajes únicos basados en el hash del username
+ * Asegura que cada usuario tenga una distribución consistente
+ * @param username - Nombre de usuario de Instagram
+ * @param count - Número de categorías a generar
+ * @returns Array de porcentajes que suman 100
+ */
 const generateUniquePercentages = (username: string, count: number): number[] => {
   // Simple hash function from username
   const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -28,17 +50,20 @@ const generateUniquePercentages = (username: string, count: number): number[] =>
   return percentages.sort((a, b) => b - a);
 };
 
-// Mock data generator for demo purposes
+/**
+ * Genera datos mock para demostración cuando la API falla
+ * @param username - Nombre de usuario de Instagram
+ * @returns Objeto completo de analytics con datos de ejemplo
+ */
 const generateMockData = (username: string): InstagramAnalytics => {
   // Generate unique categories for each username
   const categoryNames = ['Lifestyle', 'Fashion', 'Travel', 'Food', 'Fitness'];
   const percentages = generateUniquePercentages(username, categoryNames.length);
-  const colors = ['#f97316', '#ef4444', '#ec4899', '#f59e0b', '#fb923c'];
 
   const mockCategories: ContentCategory[] = categoryNames.map((name, index) => ({
     name,
     percentage: percentages[index],
-    color: colors[index],
+    color: CATEGORY_COLORS[index],
   }));
 
   const mockFollowerGrowth: FollowerGrowth[] = [];
@@ -88,26 +113,31 @@ const generateMockData = (username: string): InstagramAnalytics => {
 };
 
 export const InstagramService = {
+  /**
+   * Obtiene analytics completos de un perfil de Instagram
+   * - Intenta obtener datos reales de la API con retry automático
+   * - Si falla, retorna datos mock para demostración
+   * - Incluye métricas de engagement, categorías, rankings y audience quality
+   *
+   * @param username - Nombre de usuario de Instagram (sin @)
+   * @returns Promise con objeto InstagramAnalytics completo
+   * @example
+   * const analytics = await InstagramService.getCompleteAnalytics('cristiano');
+   */
   async getCompleteAnalytics(username: string): Promise<InstagramAnalytics> {
     try {
-      console.log('🔍 Iniciando búsqueda para:', username);
-      console.log('📡 Usando proxy en:', PROXY_URL);
-
       // Llamar al proxy backend en lugar de RapidAPI directamente
-      const response = await axios.get(`${PROXY_URL}/api/instagram/profile`, {
+      const response = await axios.get(`${API_CONFIG.PROXY_URL}/api/instagram/profile`, {
         params: {
           username: username,
         },
-        timeout: 15000, // 15 segundos de timeout
+        timeout: API_CONFIG.TIMEOUT,
       });
-
-      console.log('✅ Respuesta del proxy recibida:', response.data);
 
       // Map the Instagram Statistics API response to our format
       const apiData = response.data.data;
 
       if (!apiData) {
-        console.warn('No data in API response, using mock data');
         return generateMockData(username);
       }
 
@@ -117,24 +147,11 @@ export const InstagramService = {
 
       // Calculate engagement metrics
       const engagementRate = avgER * 100; // Convert to percentage
-      const avgLikes = Math.floor(avgInteractions * ENGAGEMENT_CONSTANTS.BASE_RATE); // Estimate 90% of interactions are likes
-      const avgComments = Math.floor(avgInteractions * ENGAGEMENT_CONSTANTS.VARIANCE); // Estimate 10% are comments
-
-      // Map API tags to content categories
-      const tagMap: { [key: string]: string } = {
-        'lifestyle': 'Lifestyle',
-        'fitness-and-gym': 'Fitness',
-        'cinema-and-Actors-actresses': 'Entertainment',
-        'business-and-careers': 'Business',
-        'art-artists': 'Art',
-        'celebrities': 'Celebrity',
-        'fashion-and-style': 'Fashion',
-        'travel-and-tourism': 'Travel',
-        'food-and-Cooking': 'Food',
-      };
+      const avgLikes = Math.floor(avgInteractions * ENGAGEMENT_CONSTANTS.BASE_RATE);
+      const avgComments = Math.floor(avgInteractions * ENGAGEMENT_CONSTANTS.VARIANCE);
 
       // Extract categories from tags
-      const apiTags = (apiData.tags || []).filter((tag: string) => tagMap[tag]);
+      const apiTags = (apiData.tags || []).filter((tag: string) => TAG_CATEGORY_MAP[tag]);
 
       let categories: ContentCategory[];
 
@@ -144,19 +161,18 @@ export const InstagramService = {
         const percentages = generateUniquePercentages(username, selectedTags.length);
 
         categories = selectedTags.map((tag: string, index: number) => ({
-          name: tagMap[tag],
+          name: TAG_CATEGORY_MAP[tag],
           percentage: percentages[index],
-          color: ['#f97316', '#ef4444', '#ec4899', '#f59e0b', '#fb923c'][index] || '#f97316',
+          color: CATEGORY_COLORS[index] || CATEGORY_COLORS[0],
         }));
       } else {
         // Generate dynamic fallback categories based on username
-        const fallbackCategories = ['Lifestyle', 'Entertainment', 'Creative', 'Personal', 'Other'];
-        const percentages = generateUniquePercentages(username, fallbackCategories.length);
+        const percentages = generateUniquePercentages(username, FALLBACK_CATEGORIES.length);
 
-        categories = fallbackCategories.map((name, index) => ({
+        categories = Array.from(FALLBACK_CATEGORIES).map((name, index) => ({
           name,
           percentage: percentages[index],
-          color: ['#f97316', '#ef4444', '#ec4899', '#f59e0b', '#fb923c'][index],
+          color: CATEGORY_COLORS[index],
         }));
       }
 
@@ -184,14 +200,6 @@ export const InstagramService = {
         : followers > 100000
         ? Math.floor(Math.random() * 1500) + 300  // Influencers
         : Math.floor(Math.random() * 1000) + 100; // Regular users
-
-      console.log('📊 Datos calculados:', {
-        followers,
-        estimatedFollowing,
-        estimatedPosts,
-        apiFollowing: apiData.usersFollowedCount,
-        apiPosts: apiData.postsCount,
-      });
 
       return {
         profile: {
@@ -226,27 +234,7 @@ export const InstagramService = {
         followerGrowth,
       };
     } catch (error) {
-      console.error('❌ API Error:', error);
-
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        console.error('Error details:', error.response?.data);
-        console.error('Status:', status);
-
-        // Log specific error messages based on status code
-        if (status === 401 || status === 403) {
-          console.error('⚠️ API Key inválida o sin permisos. Usando datos de demostración.');
-        } else if (status === 404) {
-          console.error('⚠️ Usuario no encontrado o endpoint incorrecto. Usando datos de demostración.');
-        } else if (status === 429) {
-          console.error('⚠️ Límite de requests excedido. Usando datos de demostración.');
-        } else {
-          console.error('⚠️ Error desconocido en la API. Usando datos de demostración.');
-        }
-      }
-
       // Fall back to mock data if API fails
-      console.warn('⚠️ Falling back to mock data due to API error');
       return generateMockData(username);
     }
   },

@@ -4,7 +4,7 @@ import cors from 'cors';
 import axios from 'axios';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { body, query, validationResult } from 'express-validator';
+import { query, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import { USERS_DATABASE } from './server-data.js';
 
@@ -16,15 +16,29 @@ const PORT = process.env.PORT || 3001;
 
 // Configuración desde variables de entorno (NO hardcoded)
 const CONFIG = {
-  RAPIDAPI_KEY: process.env.RAPIDAPI_KEY || '34b3a108aemsh48ab034fb3d8d46p100ca9jsn0dd489ab9205',
+  RAPIDAPI_KEY: process.env.RAPIDAPI_KEY,
   RAPIDAPI_HOST: process.env.RAPIDAPI_HOST || 'instagram-statistics-api.p.rapidapi.com',
 };
+
+// Validar que la API key esté configurada
+if (!CONFIG.RAPIDAPI_KEY) {
+  console.error('❌ ERROR: RAPIDAPI_KEY no está configurada en las variables de entorno');
+  console.error('   Por favor configura RAPIDAPI_KEY en tu archivo .env');
+  process.exit(1);
+}
 
 // Seguridad con Helmet
 app.use(helmet());
 
-// CORS
-app.use(cors());
+// CORS - Configuración restrictiva para producción
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.ALLOWED_ORIGINS?.split(',') || []
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Rate limiting - API general
@@ -47,15 +61,10 @@ const searchLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use('/api/instagram/search', searchLimiter);
 
-console.log('\n🚀 Servidor proxy iniciando...');
-console.log('📡 API Key:', '***' + CONFIG.RAPIDAPI_KEY.slice(-4));
-console.log('🌐 Host:', CONFIG.RAPIDAPI_HOST);
-
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'OK',
-    apiKey: '***' + CONFIG.RAPIDAPI_KEY.slice(-4),
     timestamp: new Date().toISOString()
   });
 });
@@ -97,8 +106,6 @@ app.get('/api/instagram/search',
       return res.json({ results: [] });
     }
 
-    console.log(`\n🔍 Búsqueda recibida: "${searchQuery}"`);
-
     try {
       const matchingUsers = searchUsers(searchQuery);
 
@@ -110,11 +117,9 @@ app.get('/api/instagram/search',
         isVerified: user.isVerified,
       }));
 
-      console.log(`   ✅ Sugerencias devueltas: ${results.length}`);
       res.json({ results });
 
     } catch (error) {
-      console.error('❌ Error en búsqueda:', error.message);
       res.status(500).json({
         error: 'Search Error',
         message: 'Error al procesar la búsqueda',
@@ -145,15 +150,8 @@ app.get('/api/instagram/profile',
       return res.status(400).json({ error: 'Username required' });
     }
 
-    console.log(`\n📥 Request recibido para: ${username}`);
-
     try {
       const instagramUrl = `https://www.instagram.com/${username}/`;
-
-      console.log('🔄 Haciendo request a RapidAPI...');
-      console.log('   URL:', instagramUrl);
-      console.log('   Host:', CONFIG.RAPIDAPI_HOST);
-      console.log('   API Key:', '***' + CONFIG.RAPIDAPI_KEY.slice(-4));
 
       const response = await axios.get(
         `https://${CONFIG.RAPIDAPI_HOST}/community`,
@@ -169,18 +167,10 @@ app.get('/api/instagram/profile',
         }
       );
 
-      console.log('✅ Respuesta exitosa de RapidAPI');
-      console.log('   Status:', response.status);
-
       res.json(response.data);
 
     } catch (error) {
-      console.error('❌ Error:', error.message);
-
       if (error.response) {
-        console.error('   Status:', error.response.status);
-        console.error('   Data:', error.response.data);
-
         return res.status(error.response.status).json({
           error: 'API Error',
           message: error.response.data?.message || error.message,
@@ -194,8 +184,7 @@ app.get('/api/instagram/profile',
 );
 
 // Error handler global
-app.use((err, req, res, next) => {
-  console.error('💥 Error no manejado:', err);
+app.use((err, _req, res, _next) => {
   res.status(500).json({
     error: 'Internal Server Error',
     message: process.env.NODE_ENV === 'production'
@@ -205,7 +194,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',
     message: 'El endpoint solicitado no existe'

@@ -20,9 +20,15 @@ const searchUsers = (searchQuery) => {
 };
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers - Restrictivo en producción
+  const allowedOrigin = req.headers.origin;
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+
+  if (allowedOrigins.length === 0 || allowedOrigins.includes(allowedOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin || '*');
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -63,7 +69,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ results });
 
   } catch (error) {
-    console.error('Search error:', error.message);
     return res.status(500).json({
       error: 'Search Error',
       message: 'Error al procesar la búsqueda',

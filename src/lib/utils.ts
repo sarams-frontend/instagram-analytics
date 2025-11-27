@@ -18,7 +18,14 @@ export const ENGAGEMENT_CONSTANTS = {
   VARIANCE: 0.1,
 } as const;
 
-// Centralized number formatting function
+/**
+ * Formatea números grandes a formato legible (K, M, B)
+ * @param num - Número a formatear
+ * @returns String formateado (ej: 1.5M, 250K, 2.1B)
+ * @example
+ * formatNumber(1500000) // "1.5M"
+ * formatNumber(250000)  // "250.0K"
+ */
 export function formatNumber(num: number): string {
   if (num >= NUMBER_FORMAT.BILLION) {
     return `${(num / NUMBER_FORMAT.BILLION).toFixed(1)}B`;
