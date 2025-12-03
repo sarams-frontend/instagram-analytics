@@ -26,24 +26,29 @@ const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className="group bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-2 border-gray-100 hover:border-orange-300 cursor-pointer"
+      className="group bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-2 border-gray-100 hover:border-orange-300 cursor-pointer h-full flex flex-col"
     >
-      <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${gradient} mb-4 group-hover:scale-110 transition-transform duration-300`}>
+      {/* Icono */}
+      <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${gradient} mb-4 group-hover:scale-110 transition-transform duration-300 self-start`}>
         {icon}
       </div>
 
+      {/* Título */}
       <div className="flex items-center gap-2 mb-2">
         <span className="text-3xl">{emoji}</span>
         <h3 className="text-xl font-bold text-gray-900">{title}</h3>
       </div>
 
-      <p className="text-gray-600 font-medium mb-3">{tagline}</p>
+      {/* Tagline */}
+      <p className="text-gray-600 font-medium mb-3 flex-grow">{tagline}</p>
 
-      <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3 border border-orange-200">
+      {/* Valor */}
+      <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3 border border-orange-200 mb-3">
         <p className="text-sm text-gray-800 font-semibold">{value}</p>
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 group-hover:text-orange-600 transition-colors">
+      {/* Footer */}
+      <div className="flex items-center justify-center gap-2 text-xs text-gray-500 group-hover:text-orange-600 transition-colors mt-auto">
         <Info size={14} />
         <span className="font-medium">Click para saber más</span>
       </div>
@@ -287,8 +292,8 @@ export const MetricsGuide: React.FC = () => {
           </p>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {/* Metrics Grid - Todas las tarjetas con la misma altura */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 auto-rows-fr">
           {metrics.map((metric, index) => (
             <MetricCard key={index} {...metric} onClick={() => handleMetricClick(metric)} />
           ))}
