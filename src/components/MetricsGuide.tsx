@@ -26,29 +26,33 @@ const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className="group bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-2 border-gray-100 hover:border-orange-300 cursor-pointer h-full flex flex-col"
+      className="group bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-2 border-gray-100 hover:border-orange-300 cursor-pointer flex flex-col"
+      style={{ minHeight: '100%' }}
     >
-      {/* Icono */}
+      {/* Icono - Altura fija */}
       <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${gradient} mb-4 group-hover:scale-110 transition-transform duration-300 self-start`}>
         {icon}
       </div>
 
-      {/* Título */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-3xl">{emoji}</span>
-        <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+      {/* Título - Altura fija con line-clamp */}
+      <div className="flex items-center gap-2 mb-2 min-h-[40px]">
+        <span className="text-3xl leading-none">{emoji}</span>
+        <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{title}</h3>
       </div>
 
-      {/* Tagline */}
-      <p className="text-gray-600 font-medium mb-3 flex-grow">{tagline}</p>
+      {/* Tagline - Altura fija de 2 líneas */}
+      <p className="text-gray-600 font-medium mb-4 min-h-[48px] line-clamp-2">{tagline}</p>
 
-      {/* Valor */}
-      <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3 border border-orange-200 mb-3">
-        <p className="text-sm text-gray-800 font-semibold">{value}</p>
+      {/* Espaciador flexible */}
+      <div className="flex-grow"></div>
+
+      {/* Valor - Siempre al fondo */}
+      <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3 border border-orange-200 mb-3 min-h-[52px] flex items-center justify-center">
+        <p className="text-sm text-gray-800 font-semibold text-center">{value}</p>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-center gap-2 text-xs text-gray-500 group-hover:text-orange-600 transition-colors mt-auto">
+      {/* Footer - Siempre al fondo */}
+      <div className="flex items-center justify-center gap-2 text-xs text-gray-500 group-hover:text-orange-600 transition-colors min-h-[20px]">
         <Info size={14} />
         <span className="font-medium">Click para saber más</span>
       </div>
