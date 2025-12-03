@@ -62,75 +62,84 @@ const MetricModal: React.FC<MetricModalProps> = ({ isOpen, onClose, metric }) =>
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl my-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className={`bg-gradient-to-br ${metric.gradient} p-6 text-white rounded-t-2xl relative`}>
+        {/* Header - Compacto y responsive */}
+        <div className={`bg-gradient-to-br ${metric.gradient} p-3 sm:p-4 text-white rounded-t-xl sm:rounded-t-2xl relative`}>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 hover:bg-white/20 rounded-lg transition-colors"
+            aria-label="Cerrar"
           >
-            <X size={24} />
+            <X size={20} className="sm:hidden" />
+            <X size={24} className="hidden sm:block" />
           </button>
 
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
+          <div className="flex items-center gap-2 sm:gap-3 pr-8">
+            <div className="p-2 sm:p-3 bg-white/20 rounded-lg backdrop-blur-sm flex-shrink-0">
               {metric.icon}
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-4xl">{metric.emoji}</span>
-                <h2 className="text-3xl font-bold">{metric.title}</h2>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                <span className="text-xl sm:text-2xl flex-shrink-0">{metric.emoji}</span>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{metric.title}</h2>
               </div>
-              <p className="text-white/90 text-lg">{metric.tagline}</p>
+              <p className="text-white/90 text-xs sm:text-sm lg:text-base line-clamp-2">{metric.tagline}</p>
             </div>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Descripción */}
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Info className="text-orange-500" size={24} />
-              ¿Qué es?
-            </h3>
-            <p className="text-gray-700 leading-relaxed">{metric.description}</p>
-          </div>
+        {/* Content - Grid responsive de 2 columnas en desktop */}
+        <div className="p-3 sm:p-4 lg:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            {/* Descripción */}
+            <div className="lg:col-span-2">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <Info className="text-orange-500 flex-shrink-0" size={18} />
+                <span>¿Qué es?</span>
+              </h3>
+              <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">{metric.description}</p>
+            </div>
 
-          {/* Cómo se calcula */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border-2 border-blue-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
-              📊 ¿Cómo se calcula?
-            </h3>
-            <p className="text-gray-700 leading-relaxed">{metric.howToCalculate}</p>
-          </div>
+            {/* Cómo se calcula */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3 sm:p-4 border border-blue-200">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <span className="text-base sm:text-lg">📊</span>
+                <span>¿Cómo se calcula?</span>
+              </h3>
+              <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">{metric.howToCalculate}</p>
+            </div>
 
-          {/* Valores buenos */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
-              ✅ ¿Qué es un buen valor?
-            </h3>
-            <p className="text-gray-700 leading-relaxed">{metric.goodValue}</p>
-          </div>
+            {/* Valores buenos */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-green-200">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <span className="text-base sm:text-lg">✅</span>
+                <span>¿Qué es un buen valor?</span>
+              </h3>
+              <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">{metric.goodValue}</p>
+            </div>
 
-          {/* Valor actual */}
-          <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-xl p-5 border-2 border-orange-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-3">💡 Resumen</h3>
-            <p className="text-gray-800 font-semibold text-lg">{metric.value}</p>
+            {/* Valor actual */}
+            <div className="lg:col-span-2 bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3 sm:p-4 border border-orange-200">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <span className="text-base sm:text-lg">💡</span>
+                <span>Resumen</span>
+              </h3>
+              <p className="text-gray-800 font-semibold text-sm sm:text-base">{metric.value}</p>
+            </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+        {/* Footer - Compacto */}
+        <div className="p-3 sm:p-4 bg-gray-50 rounded-b-xl sm:rounded-b-2xl border-t border-gray-200">
           <button
             onClick={onClose}
-            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 text-sm sm:text-base"
           >
             Entendido
           </button>
